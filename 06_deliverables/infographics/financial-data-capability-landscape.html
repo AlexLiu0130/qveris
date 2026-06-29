@@ -1,0 +1,653 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>美股 AI 数据需求与 QVeris 覆盖全景图</title>
+  <style>
+    :root {
+      --bg: #ffffff;
+      --ink: #121821;
+      --muted: #5d6776;
+      --line: #dce4ec;
+      --line-soft: #edf2f6;
+      --panel: #ffffff;
+      --full: #087a59;
+      --full-bg: #e8f7f0;
+      --partial: #155fdc;
+      --partial-bg: #eaf3ff;
+      --missing: #747b87;
+      --missing-bg: #eff2f5;
+      --na: #8a6a13;
+      --na-bg: #fff6d9;
+      --accent: #0f8a78;
+      --blue: #1f6feb;
+      --navy: #143b5a;
+      --gold: #bd830d;
+      --shadow: 0 14px 36px rgba(21, 32, 47, 0.06);
+      --radius: 14px;
+      --font: -apple-system, BlinkMacSystemFont, "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", "Noto Sans CJK SC", Arial, sans-serif;
+    }
+
+    * { box-sizing: border-box; }
+
+    body {
+      margin: 0;
+      background: var(--bg);
+      color: var(--ink);
+      font-family: var(--font);
+      -webkit-font-smoothing: antialiased;
+    }
+
+    .canvas {
+      width: 1600px;
+      min-height: 1000px;
+      margin: 0 auto;
+      padding: 28px 30px 22px;
+      background:
+        radial-gradient(circle at 12% 14%, rgba(15, 138, 120, 0.038), transparent 25%),
+        radial-gradient(circle at 88% 22%, rgba(31, 111, 235, 0.036), transparent 27%),
+        linear-gradient(180deg, #fff 0%, #fff 74%, #fbfdff 100%);
+    }
+
+    .hero {
+      text-align: center;
+      margin-bottom: 16px;
+    }
+
+    .hero h1 {
+      margin: 0;
+      font-size: 52px;
+      line-height: 1.05;
+      font-weight: 780;
+      letter-spacing: 0;
+    }
+
+    .hero .en {
+      margin-top: 8px;
+      color: var(--ink);
+      font-size: 21px;
+      font-weight: 650;
+    }
+
+    .hero .desc {
+      margin-top: 8px;
+      color: var(--muted);
+      font-size: 18px;
+    }
+
+    .top-notes {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 12px;
+      margin: 12px 0 12px;
+    }
+
+    .note {
+      display: grid;
+      grid-template-columns: 42px 1fr;
+      gap: 10px;
+      align-items: center;
+      min-height: 62px;
+      padding: 12px 15px;
+      border: 1px solid var(--line);
+      border-radius: 13px;
+      background: rgba(255,255,255,0.92);
+      box-shadow: var(--shadow);
+    }
+
+    .note strong {
+      display: block;
+      font-size: 16px;
+      line-height: 1.15;
+    }
+
+    .note small {
+      display: block;
+      margin-top: 3px;
+      color: var(--muted);
+      font-size: 12px;
+      line-height: 1.15;
+    }
+
+    .section-title {
+      display: grid;
+      grid-template-columns: 1fr auto 1fr;
+      gap: 18px;
+      align-items: center;
+      margin: 14px 0 9px;
+      color: var(--ink);
+      font-size: 22px;
+      font-weight: 760;
+      text-align: center;
+    }
+
+    .section-title::before,
+    .section-title::after {
+      content: "";
+      height: 1px;
+      background: var(--line);
+    }
+
+    .section-title span span {
+      margin-left: 10px;
+      color: var(--muted);
+      font-size: 17px;
+      font-weight: 520;
+    }
+
+    .legend {
+      display: flex;
+      justify-content: flex-end;
+      gap: 14px;
+      margin: 0 8px 0 0;
+      color: var(--muted);
+      font-size: 13px;
+    }
+
+    .legend-item {
+      display: inline-flex;
+      align-items: center;
+      gap: 7px;
+    }
+
+    .dot {
+      width: 10px;
+      height: 10px;
+      border-radius: 50%;
+      background: var(--missing);
+    }
+
+    .dot.full { background: var(--full); }
+    .dot.partial { background: var(--partial); }
+    .dot.missing { background: var(--missing); }
+    .dot.na { background: var(--gold); }
+
+    .matrix-shell {
+      display: grid;
+      grid-template-columns: 288px 1fr;
+      gap: 12px;
+      align-items: stretch;
+    }
+
+    .data-panel,
+    .matrix-panel,
+    .infra-panel,
+    .workflow-panel {
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      background: rgba(255,255,255,0.96);
+      box-shadow: var(--shadow);
+      overflow: hidden;
+    }
+
+    .data-title {
+      height: 76px;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+      border-bottom: 1px solid var(--line-soft);
+      font-size: 21px;
+      font-weight: 760;
+    }
+
+    .data-title small {
+      margin-top: 3px;
+      color: var(--muted);
+      font-size: 14px;
+      font-weight: 500;
+    }
+
+    .data-list,
+    .matrix-rows {
+      display: grid;
+      grid-template-rows: repeat(13, 38px);
+    }
+
+    .data-row {
+      display: grid;
+      grid-template-columns: 38px 1fr auto;
+      gap: 8px;
+      align-items: center;
+      padding: 0 12px;
+      border-bottom: 1px solid var(--line-soft);
+    }
+
+    .data-row:last-child { border-bottom: 0; }
+
+    .data-row .name {
+      font-size: 13.5px;
+      font-weight: 730;
+      line-height: 1.05;
+      white-space: nowrap;
+    }
+
+    .data-row .sub {
+      margin-top: 1px;
+      color: var(--muted);
+      font-size: 10.5px;
+      line-height: 1.05;
+      white-space: nowrap;
+    }
+
+    .priority {
+      padding: 3px 6px;
+      border-radius: 999px;
+      background: #f3f6f9;
+      color: var(--muted);
+      font-size: 10px;
+      font-weight: 760;
+    }
+
+    .priority.p0 { background: var(--full-bg); color: var(--full); }
+    .priority.p1 { background: var(--partial-bg); color: var(--partial); }
+    .priority.p2 { background: var(--na-bg); color: var(--gold); }
+
+    .icon,
+    .mini-icon {
+      color: var(--accent);
+      stroke: currentColor;
+      fill: none;
+      stroke-linecap: round;
+      stroke-linejoin: round;
+    }
+
+    .icon {
+      width: 28px;
+      height: 28px;
+      stroke-width: 1.9;
+    }
+
+    .mini-icon {
+      width: 36px;
+      height: 36px;
+      stroke-width: 1.75;
+    }
+
+    .matrix-grid {
+      display: grid;
+      grid-template-columns: repeat(7, minmax(118px, 1fr));
+    }
+
+    .matrix-head {
+      height: 76px;
+      border-bottom: 1px solid var(--line-soft);
+    }
+
+    .type-head {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      min-width: 0;
+      border-right: 1px solid var(--line-soft);
+      text-align: center;
+      padding: 0 8px;
+    }
+
+    .type-head:last-child,
+    .cell:nth-child(7n) { border-right: 0; }
+
+    .type-head .zh {
+      font-size: 15px;
+      font-weight: 760;
+      line-height: 1.12;
+      white-space: nowrap;
+    }
+
+    .type-head .en {
+      margin-top: 5px;
+      color: var(--muted);
+      font-size: 11px;
+      line-height: 1.1;
+    }
+
+    .cell {
+      height: 38px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      border-right: 1px solid var(--line-soft);
+      border-bottom: 1px solid var(--line-soft);
+    }
+
+    .matrix-rows .cell:nth-last-child(-n + 7) { border-bottom: 0; }
+
+    .status {
+      min-width: 70px;
+      padding: 5px 11px 5px;
+      border-radius: 999px;
+      font-size: 12px;
+      font-weight: 760;
+      text-align: center;
+      letter-spacing: 0.01em;
+    }
+
+    .status.full {
+      color: var(--full);
+      background: var(--full-bg);
+      box-shadow: 0 0 16px rgba(8, 122, 89, 0.11);
+    }
+
+    .status.partial {
+      color: var(--partial);
+      background: var(--partial-bg);
+      box-shadow: 0 0 16px rgba(21, 95, 220, 0.09);
+    }
+
+    .status.missing {
+      color: var(--missing);
+      background: var(--missing-bg);
+    }
+
+    .status.na {
+      color: var(--na);
+      background: var(--na-bg);
+    }
+
+    .infra-panel {
+      display: grid;
+      grid-template-columns: repeat(8, 1fr);
+      min-height: 86px;
+      padding: 15px 18px;
+      gap: 10px;
+    }
+
+    .infra-item {
+      display: grid;
+      grid-template-columns: 40px 1fr;
+      align-items: center;
+      gap: 9px;
+      min-width: 0;
+    }
+
+    .infra-item .label {
+      font-size: 13.5px;
+      font-weight: 650;
+      line-height: 1.12;
+    }
+
+    .infra-item .sub {
+      margin-top: 2px;
+      color: var(--muted);
+      font-size: 10.5px;
+      line-height: 1.1;
+    }
+
+    .workflow-panel {
+      display: grid;
+      grid-template-columns: repeat(6, 1fr);
+      min-height: 110px;
+      padding: 18px 24px;
+      gap: 13px;
+    }
+
+    .workflow-card {
+      display: grid;
+      grid-template-columns: 54px 1fr;
+      align-items: center;
+      gap: 12px;
+      min-width: 0;
+      padding: 13px 15px;
+      border: 1px solid var(--line-soft);
+      border-radius: 12px;
+      background: linear-gradient(180deg, rgba(255,255,255,0.96), rgba(248,250,252,0.88));
+      box-shadow: 0 10px 24px rgba(21, 32, 47, 0.045);
+    }
+
+    .workflow-card .zh {
+      font-size: 16px;
+      line-height: 1.1;
+      font-weight: 760;
+      white-space: nowrap;
+    }
+
+    .workflow-card .en {
+      margin-top: 4px;
+      color: var(--muted);
+      font-size: 12px;
+      line-height: 1.12;
+    }
+
+    .footer-note {
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      gap: 12px;
+      margin-top: 14px;
+      color: var(--muted);
+      font-size: 16px;
+    }
+
+    .footer-note::before {
+      content: "";
+      display: block;
+      width: 3px;
+      height: 24px;
+      border-radius: 999px;
+      background: var(--accent);
+    }
+
+    @media (max-width: 1200px) {
+      .canvas {
+        width: 100%;
+        min-width: 1180px;
+      }
+    }
+  </style>
+</head>
+<body>
+  <main class="canvas" id="infographic">
+    <!-- 1. 标题区 -->
+    <header class="hero">
+      <h1>美股 AI 数据需求与 QVeris 覆盖全景图</h1>
+      <div class="en">US Stock AI Data Requirements &amp; QVeris Coverage Landscape</div>
+      <div class="desc">基于《美股投资所需数据类型研究报告》：从数据需求、公开覆盖、待 Inspect 缺口到产品工作流</div>
+    </header>
+
+    <!-- 2. 顶部摘要卡片 -->
+    <section class="top-notes" aria-label="Summary cards">
+      <div class="note">
+        <svg class="mini-icon" viewBox="0 0 48 48"><path d="M6 34l10-10 8 7 17-18"/><path d="M34 13h7v7"/></svg>
+        <div><strong>P0 先打基础</strong><small>行情、基本面、披露、新闻、估值、宏观先支撑 MVP</small></div>
+      </div>
+      <div class="note">
+        <svg class="mini-icon" viewBox="0 0 48 48"><circle cx="24" cy="24" r="17"/><path d="M24 12v12l9 5"/></svg>
+        <div><strong>公开资料需谨慎</strong><small>无法证明的能力不判定为没有，统一进入 Discover / Inspect</small></div>
+      </div>
+      <div class="note">
+        <svg class="mini-icon" viewBox="0 0 48 48"><path d="M24 5l16 7v11c0 10-6 17-16 20C14 40 8 33 8 23V12z"/><path d="M17 25l5 5 10-12"/></svg>
+        <div><strong>差异化看 AI 链</strong><small>AI 供应链、云 CapEx、Dark Pool / Block 是特色层</small></div>
+      </div>
+    </section>
+
+    <!-- 状态图例 -->
+    <div class="legend" aria-label="Status legend">
+      <span class="legend-item"><span class="dot full"></span> Full 已公开确认/可直接支撑</span>
+      <span class="legend-item"><span class="dot partial"></span> Partial 部分确认/需补字段</span>
+      <span class="legend-item"><span class="dot missing"></span> Missing 未公开确认</span>
+      <span class="legend-item"><span class="dot na"></span> N/A 不适用</span>
+    </div>
+
+    <!-- 3. 数据需求 x QVeris 覆盖矩阵 -->
+    <div class="section-title"><span>数据需求与覆盖矩阵 <span>Data Needs × QVeris Coverage</span></span></div>
+    <section class="matrix-shell" aria-label="US stock AI data requirements matrix">
+      <aside class="data-panel">
+        <div class="data-title">数据类型 <small>Data Categories</small></div>
+        <div class="data-list" id="dataList"></div>
+      </aside>
+      <section class="matrix-panel">
+        <div class="matrix-grid matrix-head" id="typeHeader"></div>
+        <div class="matrix-grid matrix-rows" id="matrixRows"></div>
+      </section>
+    </section>
+
+    <!-- 4. 可信基础设施模块 -->
+    <div class="section-title"><span>可信基础设施 <span>Trust Infrastructure</span></span></div>
+    <section class="infra-panel" id="infraPanel" aria-label="Trust infrastructure"></section>
+
+    <!-- 5. Agent 工作流模块 -->
+    <div class="section-title"><span>Agent 工作流 <span>Agent Workflows</span></span></div>
+    <section class="workflow-panel" id="workflowPanel" aria-label="Agent workflows"></section>
+
+    <!-- 6. 底部说明 -->
+    <footer class="footer-note">
+      核心价值：不只是接入数据，而是让 AI Agent 知道数据是否可信、口径是否一致、能否用于生产决策。
+    </footer>
+  </main>
+
+  <script>
+    /*
+      可编辑数据区：
+      - 修改 dataCategories 可改左侧 13 类数据。
+      - 修改 capabilityColumns 可改矩阵列。
+      - 修改 matrix 可改每个状态：Full / Partial / Missing / N/A。
+      - 修改 trustInfrastructure / agentWorkflows 可改底部卡片。
+    */
+
+    const icons = {
+      trend: '<svg class="icon" viewBox="0 0 48 48"><path d="M5 34l11-11 9 7L42 12"/><path d="M34 12h8v8"/></svg>',
+      book: '<svg class="icon" viewBox="0 0 48 48"><rect x="9" y="8" width="30" height="32" rx="4"/><path d="M17 17h14M17 25h14M17 33h10"/></svg>',
+      droplet: '<svg class="icon" viewBox="0 0 48 48"><path d="M24 5C15 17 10 25 10 32a14 14 0 0 0 28 0C38 25 33 17 24 5z"/></svg>',
+      filing: '<svg class="icon" viewBox="0 0 48 48"><path d="M14 5h15l8 8v30H14z"/><path d="M29 5v9h8M20 23h11M20 31h11"/></svg>',
+      bars: '<svg class="icon" viewBox="0 0 48 48"><path d="M10 38V25M21 38V15M32 38V22M43 38V8"/><path d="M7 38h38"/></svg>',
+      bell: '<svg class="icon" viewBox="0 0 48 48"><path d="M38 33H10c4-5 5-8 5-16a9 9 0 0 1 18 0c0 8 1 11 5 16z"/><path d="M20 38a5 5 0 0 0 8 0"/></svg>',
+      globe: '<svg class="icon" viewBox="0 0 48 48"><circle cx="24" cy="24" r="18"/><path d="M6 24h36M24 6c6 6 9 12 9 18s-3 12-9 18M24 6c-6 6-9 12-9 18s3 12 9 18"/></svg>',
+      options: '<svg class="icon" viewBox="0 0 48 48"><path d="M8 35c7-20 13-20 18 0s8 8 14-10"/><path d="M32 17h8v8"/></svg>',
+      flow: '<svg class="icon" viewBox="0 0 48 48"><circle cx="10" cy="24" r="4"/><circle cx="38" cy="12" r="4"/><circle cx="38" cy="36" r="4"/><path d="M14 22l20-8M14 26l20 8"/></svg>',
+      shield: '<svg class="icon" viewBox="0 0 48 48"><path d="M24 5l16 7v11c0 10-6 17-16 20C14 40 8 33 8 23V12z"/><path d="M24 15v12M24 34h.01"/></svg>',
+      chip: '<svg class="icon" viewBox="0 0 48 48"><rect x="13" y="13" width="22" height="22" rx="4"/><path d="M18 4v7M30 4v7M18 37v7M30 37v7M4 18h7M4 30h7M37 18h7M37 30h7"/></svg>',
+      search: '<svg class="mini-icon" viewBox="0 0 48 48"><circle cx="20" cy="20" r="13"/><path d="M30 30l12 12"/></svg>',
+      schema: '<svg class="mini-icon" viewBox="0 0 48 48"><rect x="7" y="8" width="34" height="32" rx="4"/><path d="M15 17h18M15 24h10M15 31h14"/></svg>',
+      sync: '<svg class="mini-icon" viewBox="0 0 48 48"><path d="M15 15a13 13 0 0 1 21 5"/><path d="M36 10v10H26M33 33a13 13 0 0 1-21-5"/><path d="M12 38V28h10"/></svg>',
+      clock: '<svg class="mini-icon" viewBox="0 0 48 48"><circle cx="24" cy="24" r="18"/><path d="M24 13v12l9 5"/></svg>',
+      ledger: '<svg class="mini-icon" viewBox="0 0 48 48"><path d="M12 6h24v36H12z"/><path d="M18 16h12M18 24h12M18 32h8"/></svg>',
+      lineage: '<svg class="mini-icon" viewBox="0 0 48 48"><circle cx="24" cy="10" r="4"/><circle cx="12" cy="36" r="4"/><circle cx="36" cy="36" r="4"/><path d="M24 14v9M24 23l-12 9M24 23l12 9"/></svg>',
+      ruler: '<svg class="mini-icon" viewBox="0 0 48 48"><rect x="9" y="20" width="30" height="10" rx="2" transform="rotate(-38 24 25)"/><path d="M18 17l3 4M24 12l3 4M30 8l3 4"/></svg>',
+      guard: '<svg class="mini-icon" viewBox="0 0 48 48"><path d="M24 5l16 7v11c0 10-6 17-16 20C14 40 8 33 8 23V12z"/><path d="M17 25l5 5 10-12"/></svg>'
+    };
+
+    const dataCategories = [
+      { zh: '市场数据', en: 'Market Data', p: 'P0', icon: icons.trend },
+      { zh: '微观结构', en: 'Microstructure', p: 'P0/P1', icon: icons.bars },
+      { zh: '流动性', en: 'Liquidity', p: 'P0/P1', icon: icons.droplet },
+      { zh: '公司基本面', en: 'Fundamentals', p: 'P0', icon: icons.book },
+      { zh: '财报披露', en: 'Filings', p: 'P0', icon: icons.filing },
+      { zh: '估值', en: 'Valuation', p: 'P0/P1', icon: icons.bars },
+      { zh: '分析师预期', en: 'Consensus', p: 'P0/P1', icon: icons.trend },
+      { zh: '新闻事件', en: 'News & Events', p: 'P0', icon: icons.bell },
+      { zh: '宏观利率', en: 'Macro & Rates', p: 'P0/P1', icon: icons.globe },
+      { zh: '期权波动率', en: 'Options & Vol.', p: 'P1', icon: icons.options },
+      { zh: '资金流持仓', en: 'Flow & Ownership', p: 'P1', icon: icons.flow },
+      { zh: '做空卖空', en: 'Short Data', p: 'P1', icon: icons.shield },
+      { zh: 'AI供应链/场外', en: 'AI Chain / Off-ex.', p: 'P2', icon: icons.chip }
+    ];
+
+    const capabilityColumns = [
+      { zh: '数据需求', en: 'Required Need' },
+      { zh: 'QVeris公开', en: 'Public Coverage' },
+      { zh: '产品可计算', en: 'Product Computed' },
+      { zh: '待Inspect', en: 'Inspect Needed' },
+      { zh: 'MVP支撑', en: 'MVP Support' },
+      { zh: '专业增强', en: 'Advanced' },
+      { zh: '差异化', en: 'Differentiation' }
+    ];
+
+    const matrix = [
+      ['Full', 'Full', 'Partial', 'Partial', 'Full', 'Partial', 'Partial'],
+      ['Full', 'Partial', 'Partial', 'Partial', 'Partial', 'Full', 'Partial'],
+      ['Full', 'Partial', 'Partial', 'Partial', 'Full', 'Partial', 'Partial'],
+      ['Full', 'Full', 'Partial', 'Partial', 'Full', 'Partial', 'Partial'],
+      ['Full', 'Full', 'Partial', 'Partial', 'Full', 'Partial', 'Partial'],
+      ['Full', 'Partial', 'Full', 'Partial', 'Full', 'Partial', 'Partial'],
+      ['Full', 'Missing', 'Partial', 'Full', 'Partial', 'Full', 'Partial'],
+      ['Full', 'Full', 'Partial', 'Partial', 'Full', 'Partial', 'Partial'],
+      ['Full', 'Partial', 'Partial', 'Full', 'Partial', 'Partial', 'Partial'],
+      ['Full', 'Partial', 'Partial', 'Full', 'Partial', 'Full', 'Partial'],
+      ['Full', 'Partial', 'Partial', 'Full', 'N/A', 'Full', 'Partial'],
+      ['Full', 'Missing', 'Partial', 'Full', 'N/A', 'Full', 'Partial'],
+      ['Full', 'Missing', 'Partial', 'Full', 'N/A', 'Partial', 'Full']
+    ];
+
+    const trustInfrastructure = [
+      { name: 'Discover Routing', sub: '能力发现', icon: icons.search },
+      { name: 'Inspect Schema', sub: '字段/参数', icon: icons.schema },
+      { name: 'Provider Reconciliation', sub: '供应商对账', icon: icons.sync },
+      { name: 'Data Freshness', sub: '延迟/新鲜度', icon: icons.clock },
+      { name: 'Credits Ledger', sub: '成本留痕', icon: icons.ledger },
+      { name: 'Source Lineage', sub: '来源血缘', icon: icons.lineage },
+      { name: 'Field Normalization', sub: '口径统一', icon: icons.ruler },
+      { name: 'Compliance Guardrail', sub: '合规边界', icon: icons.guard }
+    ];
+
+    const agentWorkflows = [
+      { zh: '个股研究', en: 'Stock Research', icon: icons.search },
+      { zh: '财报监控', en: 'Earnings Monitor', icon: icons.filing },
+      { zh: '估值助手', en: 'Valuation Assistant', icon: icons.bars },
+      { zh: '预期差分析', en: 'Consensus Gap', icon: icons.trend },
+      { zh: '风险预警', en: 'Risk Alerts', icon: icons.shield },
+      { zh: 'AI供应链', en: 'AI Supply Chain', icon: icons.chip }
+    ];
+
+    function statusClass(value) {
+      if (value === 'Full') return 'full';
+      if (value === 'Partial') return 'partial';
+      if (value === 'N/A') return 'na';
+      return 'missing';
+    }
+
+    function priorityClass(value) {
+      if (value.includes('P0')) return 'p0';
+      if (value.includes('P2')) return 'p2';
+      return 'p1';
+    }
+
+    function render() {
+      document.getElementById('dataList').innerHTML = dataCategories.map(item => `
+        <div class="data-row">
+          ${item.icon}
+          <div>
+            <div class="name">${item.zh}</div>
+            <div class="sub">${item.en}</div>
+          </div>
+          <span class="priority ${priorityClass(item.p)}">${item.p}</span>
+        </div>
+      `).join('');
+
+      document.getElementById('typeHeader').innerHTML = capabilityColumns.map(type => `
+        <div class="type-head">
+          <div class="zh">${type.zh}</div>
+          <div class="en">${type.en}</div>
+        </div>
+      `).join('');
+
+      document.getElementById('matrixRows').innerHTML = matrix.flat().map(status => `
+        <div class="cell"><span class="status ${statusClass(status)}">${status}</span></div>
+      `).join('');
+
+      document.getElementById('infraPanel').innerHTML = trustInfrastructure.map(item => `
+        <div class="infra-item">
+          ${item.icon}
+          <div>
+            <div class="label">${item.name}</div>
+            <div class="sub">${item.sub}</div>
+          </div>
+        </div>
+      `).join('');
+
+      document.getElementById('workflowPanel').innerHTML = agentWorkflows.map(item => `
+        <div class="workflow-card">
+          ${item.icon}
+          <div>
+            <div class="zh">${item.zh}</div>
+            <div class="en">${item.en}</div>
+          </div>
+        </div>
+      `).join('');
+    }
+
+    render();
+  </script>
+</body>
+</html>

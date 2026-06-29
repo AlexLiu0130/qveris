@@ -1,0 +1,6 @@
+.DS_Store
+node_modules/
+*.log
+~$*.docx
+05_data/outputs/report_render_*/
+
